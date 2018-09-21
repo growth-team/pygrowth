@@ -8,7 +8,7 @@ def _requires_from_file(filename):
 
 setup(
 	name='pygrowth',
-	version='0.0.1',
+	version='0.0.2',
 	url='https://github.com/growth-team/pygrowth',	
 	author='GROWTH-team',
 	author_email='teruaki.enoto@gmail.com',
