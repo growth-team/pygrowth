@@ -28,7 +28,7 @@ else
 fi
 
 # Following two lines are preapred during the developping phase 
-export PATH=$PYGROWTH_GITSOFT_PATH/pygrowth/general:$PATH
+export PATH=$PYGROWTH_GITSOFT_PATH/pygrowth/common:$PATH
 export PYTHONPATH=$PYGROWTH_GITSOFT_PATH:$PYTHONPATH
 
 echo ComputerName    = $NAME
