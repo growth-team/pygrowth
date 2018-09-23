@@ -8,7 +8,7 @@ This python package provides analyses tools for public data from the GROWTH (Gam
     2. Make sure `tox` and `pipenv` are installed, or run `pip install tox pipenv`.
 2. Clone the pygrowth repository
     ```
-    git clone git@github.com:growth-team/pygrowth.git
+    git lfs clone git@github.com:growth-team/pygrowth.git
     ```
 3. Install in a virtual environment.
     ```
@@ -24,6 +24,20 @@ This python package provides analyses tools for public data from the GROWTH (Gam
     pipenv shell
     tox
     ```
+
+### Large/binary files in LFS
+
+Use Git Large File System when committing large files and/or binary files used,
+for example, for unit tests.
+
+```shell
+# Track a file using the Git LFS (add as LFS-stored file)
+git lfs track <path_to_file>
+
+# Commit (Please do not forget to commit .gitattribute file as well)
+git add .gitattribute <path_to_file>
+git commit .gitattribute <path_to_file> -m "commit message"
+```
 
 <!--
 references for PyPI
