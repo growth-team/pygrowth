@@ -18,13 +18,34 @@ SEC_IN_MIN = 60.0
 class EventFile(object):
 
     def __init__(self):
+        self.meta_data = None
         self.nevents = 0
         self.file_path = None
+
+        self.unix_time = None
+        self.energy = None  # in MeV
+        self.channel = None
+        self.trigger_count = None
 
 
 class EventFitsFile(EventFile):
     """Represents EventFile in the FITS format.
-    :param file_path: path to a file to be opened
+       Columns:
+       - timeTag
+       - unixTime
+       - boardIndexAndChannel
+       - triggerCount
+       - phaMax
+       - phaMaxTime
+       - phaMin
+       - phaFirst
+       - phaLast
+       - maxDerivative
+       - baseline
+       - waveform
+       - preciseTime
+       - energy
+       :param file_path: path to a file to be opened
     """
 
     def __init__(self, file_path):
@@ -38,6 +59,19 @@ class EventFitsFile(EventFile):
             raise
 
         self.nevents = len(self.hdu['EVENTS'].data)
+        self._event_header = self.hdu['EVENTS'].header
+        self.meta_data = {}
+        for key, value in self._event_header.items():
+            self.meta_data[key] = value
+
+        # Load data into lists
+        self._load_into_lists()
+
+    def _load_into_lists(self):
+        self.unix_time = self.hdu["EVENTS"].data["unixTime"]
+        self.energy = self.hdu["EVENTS"].data["energy"]
+        self.channel = self.hdu["EVENTS"].data["boardIndexAndChannel"]
+        self.trigger_count = self.hdu["EVENTS"].data["triggerCount"]
 
     def show_property(self):
         sys.stdout.write(str(self))

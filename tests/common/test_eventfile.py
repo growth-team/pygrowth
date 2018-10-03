@@ -24,3 +24,16 @@ Duration (min): 30.063
 All event rate (cps): 239.695"""
 
     assert str(eventfile).strip() == expected
+
+
+def test_meta_data():
+    file_path = os.path.join(TEST_DATA_DIR_PATH, "20180101_002728.fits.gz")
+    eventfile = pygrowth.common.eventfile.open(file_path)
+
+    expected = {
+        'DET_ID': 'growth-fy2016a',
+        'DATE': '2017-12-31T15:57:32',
+        'CHECKSUM': 'cQRicOQZcOQfcOQZ',
+    }
+    for key, expected_value in expected.items():
+        assert eventfile.meta_data[key] == expected_value

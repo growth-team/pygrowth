@@ -1,0 +1,174 @@
+from pygrowth.common.eventfile import EventFile
+import numpy as np
+
+# meta_data example
+# {
+#   "energy_range_kev": [500, 1e4],
+#   "channel": 0,
+#   "detector_id": "growth-fy2016a",
+#   "header_data": {
+#     ... FITS header key/value/comment ...
+#    }
+# }
+
+
+class CountHistory:
+
+    def __init__(self, meta_data=None):
+        self.time_origin = None
+        self.time_bin_edge_list = None
+        self.count_list = None
+        self.meta_data = meta_data if meta_data else {}
+        self.time_axis = "absolute"
+
+    def time_bin_width(self):
+        time_bin_width_list = self.time_bin_edge_list[1:] - self.time_bin_edge_list[0:-1]
+        return time_bin_width_list
+
+    def time_bin_center(self):
+        return (self.time_bin_edge_list[1:] + self.time_bin_edge_list[0:-1]) / 2
+
+    def count_rate(self):
+        """ Returns count rate (count divided by the time bin width) in units of counts s^-1."""
+        time_bin_width_list = self.time_bin_width()
+
+        if len(time_bin_width_list) != len(self.count_list):
+            raise RuntimeError("Lengths of time bin list and count list differ")
+
+        return self.count_list / time_bin_width_list
+
+    def count_rate_error(self, error_function=lambda x: np.sqrt(x)):
+        time_bin_width_list = self.time_bin_width()
+
+        if len(time_bin_width_list) != len(self.count_list):
+            raise RuntimeError("Lengths of time bin list and count list differ")
+
+        return error_function(self.count_list) / time_bin_width_list
+
+    def summary_json(self):
+        return {
+            "time_origin": self.time_origin,
+            "time_axis": self.time_axis,
+            "nbins": len(self.count_list),
+            "max_count": np.max(self.count_list),
+            "mean_count": np.mean(self.count_list),
+            "min_count": np.min(self.count_list),
+            "stddev_count": np.std(self.count_list),
+        }
+
+    def __str__(self):
+        return str(self.summary_json())
+
+
+class Extractor:
+
+    def __init__(self):
+        pass
+
+    def validate_option_keys(self, options, acceptable_keys):
+        for key in options.keys():
+            if key not in acceptable_keys:
+                raise ValueError(f"Key {key} is not accepted by this extractor")
+
+
+MAX_TIME_BINS = 1e5
+
+
+class CountHistoryExtractor(Extractor):
+
+    def extract(self, eventfile: EventFile, time_bin_sec, options={}) -> CountHistory:
+        """
+        Extract a count history from an EventFile by applying a set of filters.
+
+        Accepted filtering options:
+        - "time_axis": relative to the time origin or absolute unix time
+        - "time_origin": time origin in unix time
+        - "energy_range_kev": list of lower/upper energies in keV
+        - "time_range": list of lower/upper unix time
+        - "channel": integer of extracted channel
+        - "duration_before_origin_sec": duration before time origin in sec
+        - "duration_after_origin_sec": duration after time origin in sec
+
+        :param eventfile: file to be processed
+        :type eventfile: pygrowth.EventFile
+        :param time_bin_sec: time bin width in sec
+        :type time_bin_sec: float
+        :param filter: dict containing filters (see docstring for available filters)
+        :type filter: dict
+        """
+        ACCEPTED_OPTION_KEYS = [
+            "time_axis",
+            "time_origin",
+            "energy_range_kev",
+            "time_range",
+            "channel",
+            "duration_before_origin_sec",
+            "duration_after_origin_sec",
+        ]
+
+        self.validate_option_keys(options, ACCEPTED_OPTION_KEYS)
+
+        if len(eventfile.unix_time) <= 0:
+            raise RuntimeError("Cannot extract count history from a blank event file")
+
+        if not (len(eventfile.channel) == len(eventfile.energy) == len(eventfile.unix_time)):
+            raise RuntimeError("The number of rows of the channel/energy/unix_time columns differ")
+
+        # Construct filter
+        condition = (eventfile.channel == eventfile.channel)
+
+        if "channel" in options:
+            condition &= eventfile.channel == options["channel"]
+
+        if "energy_range_kev" in options:
+            if not isinstance(options["energy_range_kev"], list) or len(options["energy_range_kev"]) != 2:
+                raise ValueError("Energy range should be a list of 2 energy values in keV")
+
+            condition &= ((options["energy_range_kev"][0] <= eventfile.energy)
+                          & (eventfile.energy < options["energy_range_kev"][1]))
+
+        filtered_unix_time = eventfile.unix_time[condition]
+
+        # Create time bins
+        _counthistory = CountHistory(meta_data={"extraction_option": options})
+        _counthistory.time_origin = options["time_origin"] if "time_origin" in options else filtered_unix_time[0]
+        duration_before_origin_sec = options[
+            "duration_before_origin_sec"] if "duration_before_origin_sec" in options else 0
+        duration_after_origin_sec = options[
+            "duration_after_origin_sec"] if "duration_after_origin_sec" in options else 0
+
+        if duration_before_origin_sec < 0:
+            raise ValueError("duration_before_origin_sec option must not be negative")
+
+        if duration_after_origin_sec < 0:
+            raise ValueError("duration_after_origin_sec option must not be negative")
+
+        if duration_after_origin_sec == 0:
+            duration_sec = filtered_unix_time[-1] - (_counthistory.time_origin - duration_before_origin_sec)
+        else:
+            duration_sec = (_counthistory.time_origin + duration_after_origin_sec) - \
+                (_counthistory.time_origin - duration_before_origin_sec)
+
+        nbins = duration_sec / time_bin_sec
+
+        if not (0 < nbins < MAX_TIME_BINS):
+            raise ValueError("Cannot create {} time bins".format(nbins))
+
+        _counthistory.time_bin_edge_list = np.arange(
+            _counthistory.time_origin - duration_before_origin_sec,
+            _counthistory.time_origin + duration_sec,
+            time_bin_sec)
+
+        # Bin events
+        _counthistory.count_list, _ = np.histogram(filtered_unix_time, bins=_counthistory.time_bin_edge_list)
+
+        if "time_axis" in options:
+            if options["time_axis"] == "relative":
+                _counthistory.time_bin_edge_list -= _counthistory.time_origin
+                self.time_axis = "relative"
+            elif options["time_axis"] == "absolute":
+                pass
+            else:
+                raise ValueError("time_axis option should be either of \"absolute\" or \"relative\"")
+
+        return _counthistory
