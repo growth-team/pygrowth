@@ -1,5 +1,6 @@
 from pygrowth.common.eventfile import EventFile
 import numpy as np
+import arrow
 
 # meta_data example
 # {
@@ -18,8 +19,24 @@ class CountHistory:
         self.time_origin = None
         self.time_bin_edge_list = None
         self.count_list = None
+        self.effective_time_list = None
+        self.gti_list = None
         self.meta_data = meta_data if meta_data else {}
         self.time_axis = "absolute"
+
+    def summary_json(self):
+        return {
+            "time_origin": self.time_origin,
+            "time_axis": self.time_axis,
+            "nbins": len(self.count_list),
+            "max_count": np.max(self.count_list),
+            "mean_count": np.mean(self.count_list),
+            "min_count": np.min(self.count_list),
+            "stddev_count": np.std(self.count_list),
+        }
+
+    def __str__(self):
+        return str(self.summary_json())
 
     def time_bin_width(self):
         time_bin_width_list = self.time_bin_edge_list[1:] - self.time_bin_edge_list[0:-1]
@@ -45,19 +62,59 @@ class CountHistory:
 
         return error_function(self.count_list) / time_bin_width_list
 
-    def summary_json(self):
-        return {
-            "time_origin": self.time_origin,
-            "time_axis": self.time_axis,
-            "nbins": len(self.count_list),
-            "max_count": np.max(self.count_list),
-            "mean_count": np.mean(self.count_list),
-            "min_count": np.min(self.count_list),
-            "stddev_count": np.std(self.count_list),
-        }
+    def energy_range(self):
+        if "extraction_option" in meta_data and "energy_range_kev" in meta_data["extraction_option"]:
+            return meta_data["extraction_option"]
+        else:
+            return None
 
-    def __str__(self):
-        return str(self.summary_json())
+    def plot(self, panel, options={}):
+        import matplotlib.pyplot as plt
+
+        color = "black" if "color" not in options else options["color"]
+        linewidth = 1 if "linewidth" not in options else options["linewidth"]
+        markersize = 3 if "markersize" not in options else options["markersize"]
+        alpha = 1 if "alpha" not in options else options["alpha"]
+
+        panel.errorbar(self.time_bin_center(), self.count_rate(),
+                       xerr=self.time_bin_width() / 2, yerr=self.count_rate_error() / 2,
+                       fmt="o", color=color,
+                       linewidth=linewidth,
+                       markersize=markersize, markerfacecolor=color, markeredgewidth=0.0, fillstyle="full",
+                       alpha=alpha)
+
+        # If "same" is true in options, styling will not be performed
+        # like ROOT's "same" option.
+        if "same" not in options or options["same"] is False:
+            self._set_plot_style(panel, options)
+
+    def _set_plot_style(self, panel, options={}):
+        if "xlabel" in options:
+            panel.set_xlabel(options["xlabel"])
+        elif self.time_axis == "absolute":
+            panel.set_xlabel("Time (s)")
+        else:
+            panel.set_xlabel("Time since {} (s)".format(arrow.get(self.time_origin)))
+
+        if "ylabel" in options:
+            panel.set_ylabel(options["ylabel"])
+        else:
+            panel.set_ylabel("Count rate (s$^{-1}$)")
+
+        if "title" in options:
+            panel.set_title(options["title"])
+
+        if "ylim" in options:
+            panel.set_ylim(options["ylim"])
+        else:
+            ylim = panel.get_ylim()
+            panel.set_ylim(0, ylim[1])
+
+        if "xlim" in options:
+            panel.set_xlim(options["xlim"])
+
+        if "grid" not in options or options["grid"] is False:
+            panel.grid(True)
 
 
 class Extractor:
@@ -165,7 +222,7 @@ class CountHistoryExtractor(Extractor):
         if "time_axis" in options:
             if options["time_axis"] == "relative":
                 _counthistory.time_bin_edge_list -= _counthistory.time_origin
-                self.time_axis = "relative"
+                _counthistory.time_axis = "relative"
             elif options["time_axis"] == "absolute":
                 pass
             else:
