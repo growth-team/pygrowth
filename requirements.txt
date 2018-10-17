@@ -2,3 +2,4 @@ numpy>=1.11.0
 astropy>=2.0,<3.0
 matplotlib>=1.5.3
 click==6.7
+arrow>=0.12.1
