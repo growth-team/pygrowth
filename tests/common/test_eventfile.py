@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-import pygrowth.common.eventfile
+import pygrowth.eventfile
 
 TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(__file__), "test_data")
 

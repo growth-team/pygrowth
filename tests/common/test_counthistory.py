@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import os
-import pygrowth.common.counthistory
-import pygrowth.common.eventfile
+import pygrowth.counthistory
+import pygrowth.eventfile
 import numpy as np
 import unittest
 

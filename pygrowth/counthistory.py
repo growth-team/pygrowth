@@ -1,4 +1,5 @@
-from pygrowth.common.eventfile import EventFile
+from pygrowth.eventfile import EventFile
+from pygrowth.extractor import Extractor
 import numpy as np
 import arrow
 
@@ -115,17 +116,6 @@ class CountHistory:
 
         if "grid" not in options or options["grid"] is False:
             panel.grid(True)
-
-
-class Extractor:
-
-    def __init__(self):
-        pass
-
-    def validate_option_keys(self, options, acceptable_keys):
-        for key in options.keys():
-            if key not in acceptable_keys:
-                raise ValueError(f"Key {key} is not accepted by this extractor")
 
 
 MAX_TIME_BINS = 1e5

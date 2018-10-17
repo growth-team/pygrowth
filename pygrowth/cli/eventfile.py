@@ -5,8 +5,8 @@ CLI for eventfile module
 """
 
 import click
-import pygrowth.common.eventfile
-import pygrowth.common.counthistory
+import pygrowth.eventfile
+import pygrowth.counthistory
 
 
 @click.group(invoke_without_command=True)
