@@ -15,6 +15,8 @@ import json
 #    }
 # }
 
+MAX_TIME_BINS = 1e5
+
 
 class CountHistory:
 
@@ -117,8 +119,28 @@ class CountHistory:
         if "grid" not in options or options["grid"] is False:
             panel.grid(True)
 
+    def write(self, file_path):
+        writer = None
 
-MAX_TIME_BINS = 1e5
+        if file_path.endswith(".json"):
+            writer = CountHistoryWriterJSON()
+
+        if not writer:
+            raise CountHistoryException("Unsupported file format is specified")
+
+        writer.write(file_path, self)
+
+    @classmethod
+    def read(cls, file_path):
+        reader = None
+
+        if file_path.endswith(".json"):
+            reader = CountHistoryReaderJSON()
+
+        if not reader:
+            raise CountHistoryException("Unsupported file format is specified")
+
+        return reader.read(file_path)
 
 
 class CountHistoryExtractor(Extractor):
@@ -260,7 +282,7 @@ class CountHistoryReader(object):
 class CountHistoryReaderJSON(CountHistoryReader):
 
     @classmethod
-    def load(cls, source):
+    def read(cls, source):
         if not hasattr(source, "read"):
             source = open(source)
 
