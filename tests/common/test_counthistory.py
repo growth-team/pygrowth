@@ -12,13 +12,13 @@ TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(__file__), "test_data")
 class TestCountHistory(unittest.TestCase):
 
     def test_counthistory_time_bin_width_center(self):
-        counthistory = pygrowth.common.counthistory.CountHistory()
+        counthistory = pygrowth.counthistory.CountHistory()
         counthistory.time_bin_edge_list = np.array([0.0, 10.0, 20.0])
         assert np.allclose(counthistory.time_bin_width(), [10, 10])
         assert np.allclose(counthistory.time_bin_center(), [5, 15])
 
     def test_counthistory_count_rate(self):
-        counthistory = pygrowth.common.counthistory.CountHistory()
+        counthistory = pygrowth.counthistory.CountHistory()
         counthistory.time_bin_edge_list = np.array([0.0, 10.0, 20.0])
         counthistory.count_list = np.array([200, 205])
         assert np.allclose(counthistory.count_rate(), [200 / 10.0, 205 / 10.0])
@@ -33,7 +33,7 @@ class TestCountHistory(unittest.TestCase):
             counthistory.count_rate_error()
 
     def test_counthistory_summary_json_and_str(self):
-        counthistory = pygrowth.common.counthistory.CountHistory()
+        counthistory = pygrowth.counthistory.CountHistory()
         counthistory.time_origin = 0
         counthistory.time_bin_edge_list = np.array([0.0, 10.0, 20.0, 30.0])
         counthistory.count_list = np.array([200, 205, 210])
@@ -52,7 +52,7 @@ class TestCountHistory(unittest.TestCase):
         self.assertEqual(str(counthistory), str(expected))
 
 
-class MockEventFile(pygrowth.common.eventfile.EventFile):
+class MockEventFile(pygrowth.eventfile.EventFile):
 
     def __init__(self):
         self.unix_time = []
@@ -64,8 +64,8 @@ class TestCountHistoryExtractor(unittest.TestCase):
 
     def setUp(self):
         file_path = os.path.join(TEST_DATA_DIR_PATH, "20180101_002728.fits.gz")
-        self.eventfile = pygrowth.common.eventfile.open(file_path)
-        self.extractor = pygrowth.common.counthistory.CountHistoryExtractor()
+        self.eventfile = pygrowth.eventfile.open(file_path)
+        self.extractor = pygrowth.counthistory.CountHistoryExtractor()
 
     def test_extract_invalid_option(self):
         TIME_BIN_SEC = 10

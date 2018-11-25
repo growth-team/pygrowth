@@ -2,6 +2,7 @@ import os
 import sys
 import astropy.io.fits as fits
 from astropy.time import Time, TimeDelta
+import arrow
 
 SEC_IN_MIN = 60.0
 
@@ -51,9 +52,24 @@ class EventFitsFile(EventFile):
 
         self.nevents = len(self.hdu['EVENTS'].data)
         self._event_header = self.hdu['EVENTS'].header
-        self.meta_data = {}
+        start_unix_time = self.hdu['EVENTS'].data['unixTime'][0]
+        stop_unix_time = self.hdu['EVENTS'].data['unixTime'][-1]
+        event_hdu = self.hdu['EVENTS']
+        self.meta_data = {
+            "original_file_name": os.path.basename(file_path),
+            "detector_id": self._event_header['DET_ID'],
+            "obs_site": self._event_header['OBS_SITE'],
+            "start": start_unix_time,
+            "end": stop_unix_time,
+            "exposure_sec": event_hdu.data['unixTime'][-1] - event_hdu.data['unixTime'][0],
+            "start_datetime": str(arrow.get(start_unix_time)),
+            "end_datetime": str(arrow.get(stop_unix_time)),
+            "num_rows": self.nevents,
+            "fits_header": {}
+        }
+
         for key, value in self._event_header.items():
-            self.meta_data[key] = value
+            self.meta_data["fits_header"][key] = value
 
         # Load data into lists
         self._load_into_lists()
@@ -71,7 +87,6 @@ class EventFitsFile(EventFile):
         UTCtoJST_hour = 9.0
         tstart = Time(self.hdu['EVENTS'].data['unixTime'][0], format='unix', scale='utc')
         tstop = Time(self.hdu['EVENTS'].data['unixTime'][-1], format='unix', scale='utc')
-
         dump = "%s (%.2f MB)\n" % (os.path.basename(self.file_path), (os.path.getsize(self.file_path) >> 20))
         dump += "OBS_SITE: %s\n" % self.hdu['EVENTS'].header['OBS_SITE']
         dump += "DET_ID  : %s\n" % self.hdu['EVENTS'].header['DET_ID']

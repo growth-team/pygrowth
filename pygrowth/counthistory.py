@@ -1,7 +1,9 @@
 from pygrowth.eventfile import EventFile
 from pygrowth.extractor import Extractor
+from pygrowth.util import NumpyEncoder
 import numpy as np
 import arrow
+import json
 
 # meta_data example
 # {
@@ -64,14 +66,12 @@ class CountHistory:
         return error_function(self.count_list) / time_bin_width_list
 
     def energy_range(self):
-        if "extraction_option" in meta_data and "energy_range_kev" in meta_data["extraction_option"]:
-            return meta_data["extraction_option"]
+        if "extraction_option" in self.meta_data and "energy_range_kev" in self.meta_data["extraction_option"]:
+            return self.meta_data["extraction_option"]
         else:
             return None
 
     def plot(self, panel, options={}):
-        import matplotlib.pyplot as plt
-
         color = "black" if "color" not in options else options["color"]
         linewidth = 1 if "linewidth" not in options else options["linewidth"]
         markersize = 3 if "markersize" not in options else options["markersize"]
@@ -177,7 +177,8 @@ class CountHistoryExtractor(Extractor):
         filtered_unix_time = eventfile.unix_time[condition]
 
         # Create time bins
-        _counthistory = CountHistory(meta_data={"extraction_option": options})
+        _counthistory = CountHistory(meta_data={"extraction_option": options,
+                                                "eventfile_meta_data": eventfile.meta_data})
         _counthistory.time_origin = options["time_origin"] if "time_origin" in options else filtered_unix_time[0]
         duration_before_origin_sec = options[
             "duration_before_origin_sec"] if "duration_before_origin_sec" in options else 0
@@ -219,3 +220,65 @@ class CountHistoryExtractor(Extractor):
                 raise ValueError("time_axis option should be either of \"absolute\" or \"relative\"")
 
         return _counthistory
+
+
+class CountHistoryWriter(object):
+    pass
+
+
+class CountHistoryWriterJSON(CountHistoryWriter):
+
+    @classmethod
+    def write(cls, dest, counthistory):
+        if not hasattr(dest, "write"):
+            dest = open(dest, "w")
+
+        result = {
+            "type": "counthistory",
+            "content": {
+                "time_origin": counthistory.time_origin,
+                "time_bin_edge_list": list(counthistory.time_bin_edge_list),
+                "count_list": list(counthistory.count_list),
+                "effective_time_list": list(counthistory.effective_time_list) if counthistory.effective_time_list else [],
+                "gti_list": list(counthistory.gti_list) if counthistory.gti_list else [],
+                "meta_data": counthistory.meta_data,
+                "time_axis": counthistory.time_axis,
+            }
+        }
+
+        json.dump(result, dest, indent=2, separators=(",", ": "), cls=NumpyEncoder)
+
+
+class CountHistoryReaderException(Exception):
+    pass
+
+
+class CountHistoryReader(object):
+    pass
+
+
+class CountHistoryReaderJSON(CountHistoryReader):
+
+    @classmethod
+    def load(cls, source):
+        if not hasattr(source, "read"):
+            source = open(source)
+
+        data = json.load(source)
+
+        if "type" not in data or data["type"] != "counthistory":
+            raise CountHistoryReaderException("Not a count-history JSON")
+
+        count_history = CountHistory(data["content"]["meta_data"])
+
+        try:
+            count_history.time_origin = data["content"]["time_origin"]
+            count_history.time_bin_edge_list = np.array(data["content"]["time_bin_edge_list"])
+            count_history.count_list = np.array(data["content"]["count_list"])
+            count_history.effective_time_list = np.array(data["content"]["effective_time_list"])
+            count_history.gti_list = np.array(data["content"]["gti_list"])
+            count_history.time_axis = data["content"]["time_axis"]
+        except Exception:
+            raise CountHistoryReaderException("Invalid count-history JSON")
+
+        return count_history

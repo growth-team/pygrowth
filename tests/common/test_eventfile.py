@@ -8,7 +8,7 @@ TEST_DATA_DIR_PATH = os.path.join(os.path.dirname(__file__), "test_data")
 
 def test_str():
     file_path = os.path.join(TEST_DATA_DIR_PATH, "20180101_002728.fits.gz")
-    eventfile = pygrowth.common.eventfile.open(file_path)
+    eventfile = pygrowth.eventfile.open(file_path)
 
     expected = """20180101_002728.fits.gz (9.00 MB)
 OBS_SITE: Kanazawa Izumigaoka High School
@@ -28,7 +28,7 @@ All event rate (cps): 239.695"""
 
 def test_meta_data():
     file_path = os.path.join(TEST_DATA_DIR_PATH, "20180101_002728.fits.gz")
-    eventfile = pygrowth.common.eventfile.open(file_path)
+    eventfile = pygrowth.eventfile.open(file_path)
 
     expected = {
         'DET_ID': 'growth-fy2016a',
@@ -36,4 +36,4 @@ def test_meta_data():
         'CHECKSUM': 'cQRicOQZcOQfcOQZ',
     }
     for key, expected_value in expected.items():
-        assert eventfile.meta_data[key] == expected_value
+        assert eventfile.meta_data["fits_header"][key] == expected_value
