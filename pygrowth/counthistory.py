@@ -18,6 +18,10 @@ import json
 MAX_TIME_BINS = 1e5
 
 
+class CountHistoryException(Exception):
+    pass
+
+
 class CountHistory:
 
     def __init__(self, meta_data=None):
