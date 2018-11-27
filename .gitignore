@@ -2,3 +2,6 @@
 __pycache__
 .python-version
 .tox
+.coverage
+htmlcov
+.DS_Store

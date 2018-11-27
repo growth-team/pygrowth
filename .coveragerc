@@ -1,0 +1,3 @@
+[run]
+# omit = .tox/*, setup.py,
+source = .tox/py36/lib/python3.6/site-packages/pygrowth/, test
