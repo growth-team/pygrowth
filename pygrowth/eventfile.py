@@ -48,7 +48,7 @@ class EventFitsFile(EventFile):
             raise FileNotFoundError("{} not found".format(self.file_path))
         try:
             self.hdu = fits.open(self.file_path)
-        except OSError as e:
+        except OSError:
             raise
 
         self.nevents = len(self.hdu['EVENTS'].data)
