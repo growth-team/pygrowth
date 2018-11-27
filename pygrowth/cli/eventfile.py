@@ -23,24 +23,36 @@ def show(file_path):
     click.echo(eventfile)
 
 
-@cli.command(help="Extract count history or spectrum")
+@cli.command(help="Extract count history")
 @click.argument("file_path", type=click.Path(exists=True))
-def extract(file_path):
-    eventfile = pygrowth.common.eventfile.open(file_path)
-    extractor = pygrowth.common.counthistory.CountHistoryExtractor()
+@click.argument("time_bin_sec", type=float)
+@click.argument("output_file_path", type=click.Path())
+@click.option("--time-axis", type=click.Choice(["absolute", "relative"]),
+              help="Time axis mode (relative to the origin or absolute unix time")
+@click.option("--time-origin", type=float, help="Time origin in unix time")
+@click.option("--energy-range-kev", nargs=2, type=float, help="Lower and upper energy in keV")
+@click.option("--time-range", nargs=2, type=float, help="Lower and upper unix time")
+@click.option("--channel", type=int, help="Channel number to be extracted")
+@click.option("--duration-before-origin-sec", type=float, help="Included duration before time origin in sec")
+@click.option("--duration-after-origin-sec", type=float, help="Included duration before time origin in sec")
+def extract_counthistory(
+        file_path, time_bin_sec, output_file_path, time_axis="absolute", time_origin=None, energy_range_kev=None,
+        time_range=None, channel=None, duration_before_origin_sec=None, duration_after_origin_sec=None):
+
+    eventfile = pygrowth.eventfile.open(file_path)
+
     options = {
-        "time_axis": "relative",
-        "time_origin": 1514734663.0,
-        "channel": 0,
-        "energy_range_kev": [500, 3000],
-        "duration_before_origin_sec": 30.0,
-        "duration_after_origin_sec": 120.0,
+        "time_axis": time_axis,
+        "time_origin": time_origin,
+        "channel": channel,
+        "energy_range_kev": energy_range_kev,
+        "duration_before_origin_sec": duration_before_origin_sec,
+        "duration_after_origin_sec": duration_after_origin_sec,
     }
-    counthistory = extractor.extract(eventfile, 2, options)
-    import matplotlib.pyplot as plt
-    fig, panel = plt.subplots(1, 1, sharex=True)
-    counthistory.plot(panel)
-    fig.savefig("counthistory.png", dpi=200, bbox_inches='tight', transparent=True)
+
+    extractor = pygrowth.counthistory.CountHistoryExtractor()
+    counthistory = extractor.extract(eventfile, time_bin_sec, options)
+    counthistory.write(output_file_path)
 
 
 def main():

@@ -4,6 +4,7 @@ import astropy.io.fits as fits
 from astropy.time import Time, TimeDelta
 import arrow
 
+
 SEC_IN_MIN = 60.0
 
 

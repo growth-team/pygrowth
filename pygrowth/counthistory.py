@@ -190,11 +190,11 @@ class CountHistoryExtractor(Extractor):
         # Construct filter
         condition = (eventfile.channel == eventfile.channel)
 
-        if "channel" in options:
+        if options.get("channel"):
             condition &= eventfile.channel == options["channel"]
 
-        if "energy_range_kev" in options:
-            if not isinstance(options["energy_range_kev"], list) or len(options["energy_range_kev"]) != 2:
+        if options.get("energy_range_kev"):
+            if not hasattr(options["energy_range_kev"], "__len__") or len(options["energy_range_kev"]) != 2:
                 raise ValueError("Energy range should be a list of 2 energy values in keV")
 
             condition &= ((options["energy_range_kev"][0] <= eventfile.energy)
@@ -205,11 +205,11 @@ class CountHistoryExtractor(Extractor):
         # Create time bins
         _counthistory = CountHistory(meta_data={"extraction_option": options,
                                                 "eventfile_meta_data": eventfile.meta_data})
-        _counthistory.time_origin = options["time_origin"] if "time_origin" in options else filtered_unix_time[0]
+        _counthistory.time_origin = options["time_origin"] if options.get("time_origin") else filtered_unix_time[0]
         duration_before_origin_sec = options[
-            "duration_before_origin_sec"] if "duration_before_origin_sec" in options else 0
+            "duration_before_origin_sec"] if options.get("duration_before_origin_sec") else 0
         duration_after_origin_sec = options[
-            "duration_after_origin_sec"] if "duration_after_origin_sec" in options else 0
+            "duration_after_origin_sec"] if options.get("duration_after_origin_sec") else 0
 
         if duration_before_origin_sec < 0:
             raise ValueError("duration_before_origin_sec option must not be negative")
@@ -236,7 +236,7 @@ class CountHistoryExtractor(Extractor):
         # Bin events
         _counthistory.count_list, _ = np.histogram(filtered_unix_time, bins=_counthistory.time_bin_edge_list)
 
-        if "time_axis" in options:
+        if options.get("time_axis"):
             if options["time_axis"] == "relative":
                 _counthistory.time_bin_edge_list -= _counthistory.time_origin
                 _counthistory.time_axis = "relative"
